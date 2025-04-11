@@ -1,0 +1,89 @@
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import random
+
+TOKEN = import os
+TOKEN = os.getenv("BOT_TOKEN")
+
+# --------- ТВОИ ФРАЗЫ ---------
+
+phrases_derzko = [
+    "Ты не обязана быть удобной. Ты обязана быть собой.",
+    "Ты не милашка — ты Пожар. Жги.",
+    "Говоришь дерзко, выглядишь мощно, действуешь громко.",
+    "Ты — не вариант. Ты решение.",
+    "Дерзость — это когда ты не боишься быть собой.",
+    # ... (добавь сюда оставшиеся дерзкие фразы, до 50)
+]
+
+phrases_brat = [
+    "Бро, ты справишься. Даже если всё пиздец.",
+    "Мы не сдаёмся. Мы просто передохнули. Погнали дальше.",
+    "Ты не стекло. Ты бетон с душой.",
+    "Спина ровная, взгляд вперёд, мы делаем своё.",
+    "На тебе мир не закончится, но пусть попробует выдержать без тебя.",
+    # ... (добавь сюда оставшиеся братские фразы, до 50)
+]
+
+phrases_mat = [
+    "Вставай, блядь. Этот день сам себя не разъебёт.",
+    "Ты не проёб, ты перезагрузка. Жми.",
+    "Пошли всех нахуй и делай своё. Потому что МОЖЕШЬ.",
+    "Ты — огонь. А если кто не понял, сожги ещё раз.",
+    "Тебе можно всё. Даже с матом. Даже усталой.",
+    # ... (добавь сюда оставшиеся матерные фразы, до 50)
+]
+
+phrases_all = phrases_derzko + phrases_brat + phrases_mat
+
+# --------- КНОПКИ ---------
+
+keyboard_start = [["Дай смелость"]]
+keyboard_styles = [["Дерзко", "По-братски", "С матом"], ["Рандом"]]
+
+user_states = {}
+
+# --------- /start ---------
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user_states[user_id] = "waiting_for_dare"
+    await update.message.reply_text(
+        "Привет, Пожарик. Готова к пинку? Нажми «Дай смелость».",
+        reply_markup=ReplyKeyboardMarkup(keyboard_start, resize_keyboard=True)
+    )
+
+# --------- ОБРАБОТКА СООБЩЕНИЙ ---------
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    text = update.message.text
+
+    if text == "Дай смелость":
+        user_states[user_id] = "choosing_style"
+        await update.message.reply_text(
+            "Выбери, в каком стиле тебя сегодня разбудить.",
+            reply_markup=ReplyKeyboardMarkup(keyboard_styles, resize_keyboard=True)
+        )
+        return
+
+    if user_states.get(user_id) == "choosing_style":
+        if text == "Дерзко":
+            await update.message.reply_text(random.choice(phrases_derzko))
+        elif text == "По-братски":
+            await update.message.reply_text(random.choice(phrases_brat))
+        elif text == "С матом":
+            await update.message.reply_text(random.choice(phrases_mat))
+        elif text == "Рандом":
+            await update.message.reply_text(random.choice(phrases_all))
+        else:
+            await update.message.reply_text("Выбери стиль кнопкой.")
+    else:
+        await update.message.reply_text("Нажми «Дай смелость», чтобы начать.")
+
+# --------- ЗАПУСК ---------
+
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT, handle_message))
+app.run_polling()
